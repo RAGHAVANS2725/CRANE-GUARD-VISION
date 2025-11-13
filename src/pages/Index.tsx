@@ -35,7 +35,21 @@ const Index = () => {
         body: { imageData }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's a rate limit error
+        if (error.message?.includes('429') || error.message?.includes('rate')) {
+          toast({
+            title: "⏱️ Rate Limit Reached",
+            description: "Too many requests. The system will retry automatically. For faster scanning, consider upgrading your plan.",
+            variant: "destructive",
+          });
+          // Reset detection state
+          setHumanDetected(false);
+          setHumanCount(0);
+          return;
+        }
+        throw error;
+      }
 
       const result = data as {
         humanDetected: boolean;
@@ -58,11 +72,21 @@ const Index = () => {
       }
     } catch (error) {
       console.error('Detection error:', error);
-      toast({
-        title: "Detection Error",
-        description: "Unable to analyze camera feed",
-        variant: "destructive",
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      if (errorMessage.includes('429') || errorMessage.includes('rate')) {
+        toast({
+          title: "⏱️ Rate Limit",
+          description: "AI service is rate limited. Scanning paused temporarily.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Detection Error",
+          description: "Unable to analyze camera feed",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsAnalyzing(false);
     }

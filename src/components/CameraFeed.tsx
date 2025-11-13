@@ -35,10 +35,10 @@ const CameraFeed = ({ zoneId, zoneName, onFrame }: CameraFeedProps) => {
           setIsActive(true);
           setError("");
 
-          // Capture frames every 2 seconds for analysis
+          // Capture frames every 5 seconds for analysis (to avoid rate limits)
           intervalId = setInterval(() => {
             captureFrame();
-          }, 2000);
+          }, 5000);
         }
       } catch (err) {
         console.error("Camera error:", err);
