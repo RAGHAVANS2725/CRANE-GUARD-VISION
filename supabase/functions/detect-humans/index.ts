@@ -75,6 +75,24 @@ serve(async (req) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('AI Gateway error:', response.status, errorText);
+      
+      // Handle rate limiting specifically
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Rate limit exceeded',
+            humanDetected: false,
+            humanCount: 0,
+            confidence: 0,
+            details: 'AI service rate limited. Please wait before next scan.'
+          }),
+          { 
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
       throw new Error(`AI Gateway error: ${response.status}`);
     }
 
