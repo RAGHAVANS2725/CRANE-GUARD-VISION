@@ -1,0 +1,4 @@
+project_id = "fmgcsnmkbkuaerfstfgi"
+
+[functions.detect-humans]
+verify_jwt = false
