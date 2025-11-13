@@ -6,10 +6,11 @@ import { Badge } from "./ui/badge";
 interface CameraFeedProps {
   zoneId: string;
   zoneName: string;
+  cameraUrl?: string;
   onFrame: (imageData: string) => void;
 }
 
-const CameraFeed = ({ zoneId, zoneName, onFrame }: CameraFeedProps) => {
+const CameraFeed = ({ zoneId, zoneName, cameraUrl, onFrame }: CameraFeedProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isActive, setIsActive] = useState(false);
@@ -21,28 +22,44 @@ const CameraFeed = ({ zoneId, zoneName, onFrame }: CameraFeedProps) => {
 
     const startCamera = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            facingMode: "environment"
-          },
-          audio: false
-        });
+        if (cameraUrl) {
+          // Use IP camera stream
+          if (videoRef.current) {
+            videoRef.current.src = cameraUrl;
+            videoRef.current.srcObject = null;
+            setIsActive(true);
+            setError("");
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setIsActive(true);
-          setError("");
+            // Capture frames every 5 seconds for analysis
+            intervalId = setInterval(() => {
+              captureFrame();
+            }, 5000);
+          }
+        } else {
+          // Use device camera
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: "environment"
+            },
+            audio: false
+          });
 
-          // Capture frames every 5 seconds for analysis (to avoid rate limits)
-          intervalId = setInterval(() => {
-            captureFrame();
-          }, 5000);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            setIsActive(true);
+            setError("");
+
+            // Capture frames every 5 seconds for analysis
+            intervalId = setInterval(() => {
+              captureFrame();
+            }, 5000);
+          }
         }
       } catch (err) {
         console.error("Camera error:", err);
-        setError("Unable to access camera. Please check permissions.");
+        setError("Unable to access camera. Please check permissions or camera URL.");
         setIsActive(false);
       }
     };
@@ -73,7 +90,7 @@ const CameraFeed = ({ zoneId, zoneName, onFrame }: CameraFeedProps) => {
         stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, [zoneId, onFrame]);
+  }, [zoneId, cameraUrl, onFrame]);
 
   return (
     <Card className="relative overflow-hidden border-2 border-primary/30 bg-card">

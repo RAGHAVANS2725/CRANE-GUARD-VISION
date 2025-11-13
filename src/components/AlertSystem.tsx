@@ -20,29 +20,36 @@ const AlertSystem = ({
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Create audio element for alert beep
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      // Using a simple oscillator for beep sound
-      const audioContext = new AudioContext();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.frequency.value = 800;
-      gainNode.gain.value = 0.3;
-    }
-  }, []);
+    let audioContext: AudioContext | null = null;
+    let intervalId: NodeJS.Timeout | null = null;
 
-  useEffect(() => {
-    if (humanDetected || weightOverload) {
-      playAlertSound();
+    const initAudio = () => {
+      if (typeof window !== 'undefined' && 'AudioContext' in window) {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+    };
+
+    initAudio();
+
+    // Continuous beep when alert is active
+    if ((humanDetected || weightOverload) && audioContext) {
+      playAlertSound(audioContext);
+      intervalId = setInterval(() => {
+        playAlertSound(audioContext!);
+      }, 1500); // Beep every 1.5 seconds
     }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      if (audioContext) {
+        audioContext.close();
+      }
+    };
   }, [humanDetected, weightOverload]);
 
-  const playAlertSound = () => {
-    const audioContext = new AudioContext();
+  const playAlertSound = (audioContext: AudioContext) => {
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     
@@ -58,14 +65,15 @@ const AlertSystem = ({
     
     // Repeat beep
     setTimeout(() => {
-      if (humanDetected || weightOverload) {
-        const osc2 = audioContext.createOscillator();
-        osc2.connect(gainNode);
-        osc2.frequency.value = 800;
-        osc2.type = 'sine';
-        osc2.start(audioContext.currentTime);
-        osc2.stop(audioContext.currentTime + 0.2);
-      }
+      const osc2 = audioContext.createOscillator();
+      const gain2 = audioContext.createGain();
+      osc2.connect(gain2);
+      gain2.connect(audioContext.destination);
+      osc2.frequency.value = 800;
+      osc2.type = 'sine';
+      gain2.gain.value = 0.3;
+      osc2.start(audioContext.currentTime);
+      osc2.stop(audioContext.currentTime + 0.2);
     }, 300);
   };
 

@@ -3,12 +3,12 @@ import SafetyLogo from "@/components/SafetyLogo";
 import CameraFeed from "@/components/CameraFeed";
 import AlertSystem from "@/components/AlertSystem";
 import WeightMonitor from "@/components/WeightMonitor";
-import ZoneSwitcher from "@/components/ZoneSwitcher";
+import ZoneSwitcher, { Zone } from "@/components/ZoneSwitcher";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Shield } from "lucide-react";
 
-const ZONES = [
+const INITIAL_ZONES: Zone[] = [
   { id: "zone1", name: "Zone A", location: "East Sector" },
   { id: "zone2", name: "Zone B", location: "West Sector" },
   { id: "zone3", name: "Zone C", location: "North Sector" },
@@ -17,6 +17,7 @@ const ZONES = [
 
 const Index = () => {
   const [showLogo, setShowLogo] = useState(true);
+  const [zones, setZones] = useState<Zone[]>(INITIAL_ZONES);
   const [activeZone, setActiveZone] = useState("zone1");
   const [humanDetected, setHumanDetected] = useState(false);
   const [humanCount, setHumanCount] = useState(0);
@@ -24,6 +25,16 @@ const Index = () => {
   const [maxWeight, setMaxWeight] = useState(10000);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const { toast } = useToast();
+
+  const handleZoneUpdate = useCallback((zoneId: string, cameraUrl: string) => {
+    setZones(prev => prev.map(zone => 
+      zone.id === zoneId ? { ...zone, cameraUrl } : zone
+    ));
+    toast({
+      title: "Camera Configured",
+      description: `Camera URL updated for ${zones.find(z => z.id === zoneId)?.name}`,
+    });
+  }, [zones, toast]);
 
   const handleFrameCapture = useCallback(async (imageData: string) => {
     if (isAnalyzing) return;
@@ -123,7 +134,8 @@ const Index = () => {
           <div className="lg:col-span-2 space-y-6">
             <CameraFeed
               zoneId={activeZone}
-              zoneName={ZONES.find(z => z.id === activeZone)?.name || "Unknown"}
+              zoneName={zones.find(z => z.id === activeZone)?.name || "Unknown"}
+              cameraUrl={zones.find(z => z.id === activeZone)?.cameraUrl}
               onFrame={handleFrameCapture}
             />
             
@@ -139,9 +151,10 @@ const Index = () => {
           {/* Control Panel */}
           <div className="space-y-6">
             <ZoneSwitcher
-              zones={ZONES}
+              zones={zones}
               activeZone={activeZone}
               onZoneChange={setActiveZone}
+              onZoneUpdate={handleZoneUpdate}
             />
             
             <WeightMonitor
