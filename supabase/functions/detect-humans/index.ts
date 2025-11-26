@@ -12,53 +12,41 @@ serve(async (req) => {
   }
 
   try {
-    const { imageData } = await req.json();
+    // Read raw body first
+    const rawBody = await req.text();
+    console.log("Raw request body:", rawBody);
+
+    // Then parse JSON
+    const { imageData } = JSON.parse(rawBody);
 
     if (!imageData) {
-      throw new Error("No image data received");
+      throw new Error("No image data provided");
     }
 
-    const response = await fetch("https://api.openai.com/v1/images/edits", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${Deno.env.get("OPENAI_API_KEY")}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",                  // Supported model
-        image: imageData,                      // base64 from your camera feed
-        task: "object-detection",
-        labels: ["person"],                    // detect humans only
-      }),
+    console.log("Received image data:", imageData.slice(0, 50), "...");
+
+    const result = {
+      humanDetected: false,
+      humanCount: 0,
+      confidence: 0,
+      details: " removed. This is a dummy response."
+    };
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
-    const result = await response.json();
-    console.log("Detection result:", result);
-
-    const detections = result?.detections || [];
-    const humanDetections = detections.filter((d: any) => d.label === "person");
-
+  } catch (error) {
+    console.error("Error processing request:", error);
     return new Response(
       JSON.stringify({
-        humanDetected: humanDetections.length > 0,
-        humanCount: humanDetections.length,
-        confidence: humanDetections[0]?.confidence || 0,
-        details: "AI Model detection complete",
+        error: error instanceof Error ? error.message : "Unknown error",
+        humanDetected: false,
+        humanCount: 0,
+        confidence: 0,
+        details: "Error occurred during detection",
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
-
-  } catch (error) {
-    console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
