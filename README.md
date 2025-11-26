@@ -1,3 +1,4 @@
+<<<<<<< HEAD
  Welcome to your crane guard project
 
 ## Project info
@@ -65,3 +66,6 @@ Yes, you can!
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
+=======
+# CRANE-GUARD-VISION
+>>>>>>> 439ea1b79ae625f9e5f8699c779bdadfb7dcd993
